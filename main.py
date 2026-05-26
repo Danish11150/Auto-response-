@@ -1,18 +1,13 @@
 import os
 from flask import Flask, request, jsonify
 from openai import OpenAI
-import httpx
 
 app = Flask(__name__)
 
-# Proxy bug ko bypass karne ke liye saaf HTTP client banaya
-http_client = httpx.Client(proxies={})
-
-# DeepSeek Setup naye client ke sath taaki 'proxies' wala error khatam ho jaye
+# Bilkul clean setup bina kisi manual http_client ke taaki Python 3.14 crash na kare
 client = OpenAI(
     api_key="sk-98f32cf8a0804fb28ddc35cec96d9254", 
-    base_url="https://api.deepseek.com",
-    http_client=http_client
+    base_url="https://api.deepseek.com"
 )
 
 inventory = """
@@ -57,7 +52,6 @@ def whatsapp_bot():
     return jsonify({"replies": [{"message": ai_reply}]})
 
 if __name__ == '__main__':
-    # Render ke automatic port setting ka fix
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
     
