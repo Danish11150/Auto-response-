@@ -52,5 +52,7 @@ def whatsapp_bot():
     return jsonify({"replies": [{"message": ai_reply}]})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Render khud port assign karta hai, agar na mile toh 5000 use karega
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
   
