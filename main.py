@@ -12,10 +12,7 @@ from openai import OpenAI
 app = Flask(__name__)
 
 # Line 7 Fix: Ab Render ki proxy settings isko chhed nahi payengi
-client = OpenAI(
-    api_key="sk-98f32cf8a0804fb28ddc35cec96d9254", 
-    base_url="https://api.deepseek.com"
-)
+DEEPSEEK_API_KEY = "sk-98f32cf8a0804fb28ddc35cec96d9254"
 
 def load_inventory():
     """
