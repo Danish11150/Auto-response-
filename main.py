@@ -4,12 +4,13 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# Bilkul clean setup bina kisi manual http_client ke taaki Python 3.14 crash na kare
+# DeepSeek Setup tumhari API key ke sath
 client = OpenAI(
     api_key="sk-98f32cf8a0804fb28ddc35cec96d9254", 
     base_url="https://api.deepseek.com"
 )
 
+# Humara Auto Parts ka stock
 inventory = """
 - Honda Civic 2018 Brake Pads: Rs. 4500 (Available)
 - Suzuki Alto Filter: Rs. 800 (Available)
@@ -21,6 +22,7 @@ def ask_deepseek_salesman(customer_chat):
     if not customer_chat:
         customer_chat = "Hello"
 
+    # Multi-language ke liye strict rules set kiye hain yahan
     system_rules = f"""
     You are an expert AI Salesman for Bhaiya's Auto Parts Shop.
     
@@ -39,12 +41,21 @@ def ask_deepseek_salesman(customer_chat):
             {"role": "system", "content": system_rules},
             {"role": "user", "content": customer_chat}
         ],
-        temperature=0.5
+        temperature=0.4
     )
     return response.choices[0].message.content
 
+# Render par deployment check karne ke liye health route
+@app.route('/', methods=['GET'])
+def home():
+    return "AI Bot is Running Successfully on Render!", 200
+
 @app.route('/whatsapp', methods=['POST'])
 def whatsapp_bot():
+    # Content type safety lagayi hai taaki Render par crash na ho
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+        
     data = request.get_json()
     customer_message = data.get("query") or data.get("message") or ""
     
@@ -52,6 +63,7 @@ def whatsapp_bot():
     return jsonify({"replies": [{"message": ai_reply}]})
 
 if __name__ == '__main__':
+    # Render khud port allocate karega, is se 'Port in use' ya 'Crash' nahi hoga
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
     
