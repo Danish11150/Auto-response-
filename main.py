@@ -1,16 +1,25 @@
 import os
+
+# 🔥 CRITICAL RENDER FIX: Code ke start hote hi saari proxies delete kar do
+os.environ["HTTP_PROXY"] = ""
+os.environ["HTTPS_PROXY"] = ""
+os.environ["http_proxy"] = ""
+os.environ["https_proxy"] = ""
+
 from flask import Flask, request, jsonify
 from openai import OpenAI
 
 app = Flask(__name__)
 
-# Line 7 Fix: Ekdam simple client bina kisi extra config ke
-client = OpenAI(api_key="sk-98f32cf8a0804fb28ddc35cec96d9254", base_url="https://api.deepseek.com")
+# Line 7 Fix: Ab Render ki proxy settings isko chhed nahi payengi
+client = OpenAI(
+    api_key="sk-98f32cf8a0804fb28ddc35cec96d9254", 
+    base_url="https://api.deepseek.com"
+)
 
 def load_inventory():
     """
     Repository se inventory.txt file ko read karne ka function.
-    Agar file nahi milti ya koi error aata hai, toh fallback backup inventory use hogi.
     """
     filename = "inventory.txt"
     if os.path.exists(filename):
@@ -20,7 +29,6 @@ def load_inventory():
         except Exception as e:
             print(f"Error reading {filename}: {e}")
             
-    # Fallback backup inventory agar file miss ho jaye toh code crash na ho
     return """
     - Honda Civic 2018 Brake Pads: Rs. 4500 (Available)
     - Suzuki Alto Filter: Rs. 800 (Available)
@@ -32,7 +40,6 @@ def ask_deepseek_salesman(customer_chat):
     if not customer_chat:
         customer_chat = "Hello"
 
-    # Har message par fresh inventory file se load hogi
     current_inventory = load_inventory()
 
     system_rules = f"""
@@ -47,7 +54,6 @@ def ask_deepseek_salesman(customer_chat):
     {current_inventory}
     """
     
-    # Line 42-44 Fix: Temperature completely removed to avoid deepseek formatting error
     response = client.chat.completions.create(
         model="deepseek-v4-flash", 
         messages=[
