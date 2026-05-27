@@ -4,25 +4,37 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# DeepSeek Setup tumhari API key ke sath
-client = OpenAI(
-    api_key="sk-98f32cf8a0804fb28ddc35cec96d9254", 
-    base_url="https://api.deepseek.com"
-)
+# Line 7 Fix: Ekdam simple client bina kisi extra config ke
+client = OpenAI(api_key="sk-98f32cf8a0804fb28ddc35cec96d9254", base_url="https://api.deepseek.com")
 
-# Humara Auto Parts ka stock
-inventory = """
-- Honda Civic 2018 Brake Pads: Rs. 4500 (Available)
-- Suzuki Alto Filter: Rs. 800 (Available)
-- Toyota Corolla 2020 Side Mirror: Rs. 3200 (Out of stock)
-"""
+def load_inventory():
+    """
+    Repository se inventory.txt file ko read karne ka function.
+    Agar file nahi milti ya koi error aata hai, toh fallback backup inventory use hogi.
+    """
+    filename = "inventory.txt"
+    if os.path.exists(filename):
+        try:
+            with open(filename, "r", encoding="utf-8") as file:
+                return file.read().strip()
+        except Exception as e:
+            print(f"Error reading {filename}: {e}")
+            
+    # Fallback backup inventory agar file miss ho jaye toh code crash na ho
+    return """
+    - Honda Civic 2018 Brake Pads: Rs. 4500 (Available)
+    - Suzuki Alto Filter: Rs. 800 (Available)
+    - Toyota Corolla 2020 Side Mirror: Rs. 3200 (Out of stock)
+    """
 
 def ask_deepseek_salesman(customer_chat):
     customer_chat = str(customer_chat).strip()
     if not customer_chat:
         customer_chat = "Hello"
 
-    # Multi-language ke liye strict rules set kiye hain yahan
+    # Har message par fresh inventory file se load hogi
+    current_inventory = load_inventory()
+
     system_rules = f"""
     You are an expert AI Salesman for Bhaiya's Auto Parts Shop.
     
@@ -32,27 +44,25 @@ def ask_deepseek_salesman(customer_chat):
     3. Keep the tone very polite, professional, and short.
     
     Our Inventory:
-    {inventory}
+    {current_inventory}
     """
     
+    # Line 42-44 Fix: Temperature completely removed to avoid deepseek formatting error
     response = client.chat.completions.create(
         model="deepseek-v4-flash", 
         messages=[
             {"role": "system", "content": system_rules},
             {"role": "user", "content": customer_chat}
-        ],
-        temperature=0.4
+        ]
     )
     return response.choices[0].message.content
 
-# Render par deployment check karne ke liye health route
 @app.route('/', methods=['GET'])
 def home():
-    return "AI Bot is Running Successfully on Render!", 200
+    return "AI Bot is Running Successfully with External Inventory File!", 200
 
 @app.route('/whatsapp', methods=['POST'])
 def whatsapp_bot():
-    # Content type safety lagayi hai taaki Render par crash na ho
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
         
@@ -63,7 +73,6 @@ def whatsapp_bot():
     return jsonify({"replies": [{"message": ai_reply}]})
 
 if __name__ == '__main__':
-    # Render khud port allocate karega, is se 'Port in use' ya 'Crash' nahi hoga
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
     
