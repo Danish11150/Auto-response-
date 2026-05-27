@@ -66,11 +66,19 @@ def home():
 
 @app.route('/whatsapp', methods=['POST'])
 def whatsapp_bot():
-    if not request.is_json:
-        return jsonify({"error": "Request must be JSON"}), 400
-        
-    data = request.get_json()
-    customer_message = data.get("query") or data.get("message") or ""
+    try:
+        # AutoResponder form data handle karega
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+
+        customer_message = data.get("query") or data.get("message") or data.get("text") or ""
+        ai_reply = ask_deepseek_salesman(customer_message)
+        return jsonify({"replies": [{"message": ai_reply}]})
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": str(e)}), 500
     
     ai_reply = ask_deepseek_salesman(customer_message)
     return jsonify({"replies": [{"message": ai_reply}]})
