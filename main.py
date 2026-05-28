@@ -110,11 +110,11 @@ def home():
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp_bot():
     try:
-        # Accept both JSON and form data
+        # Accept JSON or form data
         data = request.get_json(silent=True) or request.form.to_dict() or {}
 
-        # Common keys AutoResponder / custom webhooks may use
-        customer_message = (
+        # AutoResponder sends nested dict inside "query"
+        raw = (
             data.get("query")
             or data.get("message")
             or data.get("text")
@@ -122,11 +122,16 @@ def whatsapp_bot():
             or ""
         )
 
+        # FIX: If AutoResponder sends dict → extract actual message
+        if isinstance(raw, dict):
+            customer_message = raw.get("message", "")
+        else:
+            customer_message = str(raw)
+
         print("Incoming message:", customer_message, "| Raw data:", data)
 
         ai_reply = ask_deepseek_salesman(customer_message)
 
-        # AutoResponder usually expects JSON with "replies"
         return jsonify({
             "replies": [
                 {"message": ai_reply}
@@ -136,7 +141,6 @@ def whatsapp_bot():
     except Exception as e:
         print("Webhook exception:", e)
         return jsonify({"error": str(e)}), 500
-
 
 # --------- Local dev / Render entry ----------
 if __name__ == "__main__":
